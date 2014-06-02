@@ -1,12 +1,7 @@
-# Deprecation Notice
-This sample project has been deprecated. It is no longer being actively maintained and is probably out of date.
-
-In other words, if you decide to clone this repository, you're on your own.
-
-# Google Mirror API's Quick Start for Ruby (using Sinatra)
+# Google Mirror API's Quick Start for Ruby (using Sinatra, Active Record and Heroku)
 
 This project shows you how to implement a simple
-piece of Glassware that demos the major functionality of the Google Mirror API.
+piece of Glassware that demos the major functionality of the Google Mirror API.  This is a fork of the original example from Google that adds in Active Record Support and the other neccessary things to run this on Heroku so that you can easily play around with the API.  See [this](http://www.polyglotprogramminginc.com/getting-started-with-google-glass-development-using-the-mirror-api-and-heroku/) blog post for detailed instructions on how to set up your project,  environment etc..
 
 ## Prerequisites
 
@@ -62,7 +57,7 @@ as a standard Ruby script from the terminal:
 
 ## Deploying the project
 
-To deploy the Quick Start to your host server, copy the Ruby Quick Start
+This example has been tested on Heroku,  but can be deployed on other servers.  See [this](http://www.polyglotprogramminginc.com/getting-started-with-google-glass-development-using-the-mirror-api-and-heroku/) blog post for more information.  To deploy the Quick Start to your host server, copy the Ruby Quick Start
 directory to your web server and configure it as a Rack application per
 your server's instructions. [Phusion Passenger](http://www.modrails.com/)
 along with [Apache httpd](http://httpd.apache.org/) or

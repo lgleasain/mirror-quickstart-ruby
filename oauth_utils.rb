@@ -15,7 +15,7 @@
 
 require 'google/api_client'
 require 'google/api_client/client_secrets'
-require './credentials_store'
+require './active_record_credentials_store'
 
 # These utility functions are an example of how Ruby code can use the
 # Google::APIClient class to authorize access to an application using OAuth2.
@@ -170,10 +170,10 @@ def get_credentials(authorization_code, state)
     user_info = get_user_info(credentials)
     user_id = user_info.id
     if credentials.refresh_token != nil
-      store_credentials(user_id, credentials)
+      store_credentials_ar(user_id, credentials)
       return credentials
     else
-      credentials = get_stored_credentials(user_id)
+      credentials = get_stored_credentials_ar(user_id)
       if credentials != nil && credentials.refresh_token != nil
         return credentials
       end

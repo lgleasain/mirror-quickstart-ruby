@@ -1,0 +1,8 @@
+development:
+  adapter: postgresql
+  database: development_mirror_quickstart
+  username: <%= ENV['PG_USER'] %>
+  password: <%= ENV['PG_PASS'] %>
+  port: <%= ENV['PG_PORT'] %>
+  host: localhost
+

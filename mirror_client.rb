@@ -14,6 +14,7 @@
 
 
 require './oauth_utils'
+require './active_record_credentials_store'
 
 ##
 # A small facade that simplifies making some basic Mirror API calls.

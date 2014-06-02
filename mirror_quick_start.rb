@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+require 'sinatra'
 require 'sinatra/base'
+require 'sinatra/activerecord'
+require './config/environments' #database configuration
+require './models/credential'        #Model class
 require './mirror_client'
 
 ##
@@ -28,14 +31,14 @@ class MirrorQuickStart < Sinatra::Base
     # Returns the base URL of the application.
     def base_url
       @base_url ||=
-        "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
+        "#{ENV['RACK_HTTP']}://#{request.env['HTTP_HOST']}"
     end
 
     ##
     # Creates and returns a MirrorClient that is authorized by looking up
     # the stored credentials for the specified user ID.
     def make_client(user_id)
-      @mirror = MirrorClient.new(get_stored_credentials(user_id))
+      @mirror = MirrorClient.new(get_stored_credentials_ar(user_id))
     end
 
     ##
@@ -62,14 +65,14 @@ class MirrorQuickStart < Sinatra::Base
       end
     end
   end
-  
+
   ##
   # Called before any route (except for the authorization and notification
   # callbacks) is processed. Here we check to see if the user is currently
   # authenticated; if so, we create a Mirror client and store it for use in
   # the routes below. Otherwise, we redirect them to be authorized.
   before /^(?!\/(?:oauth2callback|notify-callback))/ do
-    if session[:user_id].nil? || get_stored_credentials(session[:user_id]).nil?
+    if session[:user_id].nil? || get_stored_credentials_ar(session[:user_id]).nil?
       redirect to '/oauth2callback'
     else
       make_client(session[:user_id])
@@ -103,7 +106,7 @@ class MirrorQuickStart < Sinatra::Base
 
     haml :index
   end
-  
+
   ##
   # Called when one of the buttons is clicked that inserts an item into
   # the timeline.
@@ -141,7 +144,7 @@ class MirrorQuickStart < Sinatra::Base
     session[:message] = 'Inserted a timeline item that you can reply to.'
     redirect to '/'
   end
-  
+
   ##
   # Called when the button is clicked that inserts a Haml-rendered HTML
   # item into the user's timeline.
@@ -166,7 +169,7 @@ class MirrorQuickStart < Sinatra::Base
   # Called when the button is clicked that inserts a timeline card into
   # all users' timelines.
   post '/insert-all-users' do
-    user_ids = list_stored_user_ids
+    user_ids = list_stored_user_ids_ar
     if user_ids.length > 10
       session[:message] =
         "Found #{user_ids.length} users. Aborting to save your quota."
@@ -189,7 +192,7 @@ class MirrorQuickStart < Sinatra::Base
   # Called when the Delete button next to a timeline item is clicked.
   post '/delete-item' do
     @mirror.delete_timeline_item(params[:id])
-    
+
     session[:message] = 'Deleted the timeline item.'
     redirect to '/'
   end
@@ -227,14 +230,14 @@ class MirrorQuickStart < Sinatra::Base
 
       session[:message] =
         "Subscribed to #{params[:subscriptionId]} notifications."
-    rescue
+    rescue Exception => e
       session[:message] =
         "Could not subscribe because the application is not running as HTTPS."
     end
 
     redirect to '/'
   end
-  
+
   ##
   # Called to delete a subscription.
   post '/delete-subscription' do
@@ -244,7 +247,7 @@ class MirrorQuickStart < Sinatra::Base
       "Unsubscribed from #{params[:subscriptionId]} notifications."
     redirect to '/'
   end
-  
+
   ##
   # Called to handle OAuth2 authorization.
   get '/oauth2callback' do
@@ -259,7 +262,7 @@ class MirrorQuickStart < Sinatra::Base
 
       redirect to '/'
     elsif session[:user_id].nil? ||
-        get_stored_credentials(session[:user_id]).nil?
+      get_stored_credentials_ar(session[:user_id]).nil?
       # Handle step 1 of the OAuth 2.0 dance - redirect to Google
       redirect to get_authorization_url(nil, nil)
     else
@@ -267,7 +270,7 @@ class MirrorQuickStart < Sinatra::Base
       redirect to '/'
     end
   end
-  
+
   ##
   # Called by the Mirror API to notify us of events that we are subscribed to.
   post '/notify-callback' do
@@ -295,7 +298,7 @@ class MirrorQuickStart < Sinatra::Base
           # the original caption), but I wanted to illustrate the patch method
           # here.
           @mirror.patch_timeline_item(timeline_item_id,
-            { text: "Ruby Quick Start got your photo! #{caption}" })
+                                      { text: "Ruby Quick Start got your photo! #{caption}" })
         end
       end
     when 'locations'
@@ -305,7 +308,7 @@ class MirrorQuickStart < Sinatra::Base
       # Insert a new timeline card with the user's location.
       @mirror.insert_timeline_item({
         text: "Ruby Quick Start says you are at " +
-          "#{location.latitude} by #{location.longitude}." })
+        "#{location.latitude} by #{location.longitude}." })
     else
       puts "I don't know how to process this notification: " +
         "#{params[:collection]}"
@@ -325,4 +328,9 @@ class MirrorQuickStart < Sinatra::Base
 
   # Start the server if this Ruby script was started directly.
   run! if app_file == $0
+  after do
+    # Close the connection after the request is done so that we don't
+    # deplete the ActiveRecord connection pool.
+    ActiveRecord::Base.connection.close
+  end
 end
